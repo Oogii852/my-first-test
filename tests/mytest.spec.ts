@@ -8,13 +8,23 @@ test('амжилттай нэвтрэх', async ({ page }) => {
   await page.getByPlaceholder('Password').fill('secret_sauce');
   await page.getByRole('button', { name: 'Login' }).click();
 
-  // Нэвтэрсний дараа Products гэсэн гарчиг харагдах ёстой
+  // Нэвтэрсний дараа Products харагдах ёстой
   await expect(page.getByText('Products')).toBeVisible();
 
-  // Logout хийж тестийг тусгаарлана
+  // Menu нээнэ
   await page.getByRole('button', { name: 'Open Menu' }).click();
-  await page.getByRole('link', { name: 'Logout' }).click();
+
+  // Logout товч харагдахыг шалгана
+  const logoutButton = page.locator('#logout_sidebar_link');
+  await expect(logoutButton).toBeVisible();
+
+  // Logout хийнэ
+  await logoutButton.click();
+
+  // Login хуудас руу буцсан эсэхийг шалгана
+  await expect(page).toHaveURL('https://www.saucedemo.com/');
 });
+
 
 // 2. Буруу password ашиглахад алдааны мессеж гаргах
 test('амжилтгүй нэвтрэх', async ({ page }) => {
@@ -28,7 +38,11 @@ test('амжилтгүй нэвтрэх', async ({ page }) => {
   await expect(
     page.getByText('Username and password do not match')
   ).toBeVisible();
+
+  // Login хуудас дээр хэвээр байгаа эсэхийг шалгана
+  await expect(page).toHaveURL('https://www.saucedemo.com/');
 });
+
 
 // 3. Нэвтэрсний дараа бараа сагслах
 test('барааг сагслах', async ({ page }) => {
@@ -47,7 +61,16 @@ test('барааг сагслах', async ({ page }) => {
   // Сагсанд 1 бараа нэмэгдсэн эсэхийг шалгана
   await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
 
-  // Logout
+  // Menu нээнэ
   await page.getByRole('button', { name: 'Open Menu' }).click();
-  await page.getByRole('link', { name: 'Logout' }).click();
+
+  // Logout товч харагдахыг шалгана
+  const logoutButton = page.locator('#logout_sidebar_link');
+  await expect(logoutButton).toBeVisible();
+
+  // Logout хийнэ
+  await logoutButton.click();
+
+  // Login хуудас руу буцсан эсэхийг шалгана
+  await expect(page).toHaveURL('https://www.saucedemo.com/');
 });
