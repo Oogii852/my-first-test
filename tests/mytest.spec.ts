@@ -1,76 +1,46 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
-// 1. Зөв username болон password ашиглан амжилттай нэвтрэх
+const URL = 'https://www.saucedemo.com';
+
+// Нэвтрэх туслах функц: тест бүр өөрөө нэвтэрдэг тул тестүүд хоорондоо хамааралгүй (test isolation)
+async function login(page: Page, user = 'standard_user', pass = 'secret_sauce') {
+  await page.goto(URL);
+  await page.getByPlaceholder('Username').fill(user);
+  await page.getByPlaceholder('Password').fill(pass);
+  await page.getByRole('button', { name: 'Login' }).click();
+}
+
+// Гарах туслах функц: цэсийг нээгээд Logout дарна.
+// Logout нь button эсвэл link байж болох тул .or() ашиглав.
+async function logout(page: Page) {
+  await page.getByRole('button', { name: 'Open Menu' }).click();
+  await page
+    .getByRole('link', { name: 'Logout' })
+    .or(page.getByRole('button', { name: 'Logout' }))
+    .click();
+  // Гарсны дараа нэвтрэх хуудас дахин харагдана
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+}
+
 test('амжилттай нэвтрэх', async ({ page }) => {
-  await page.goto('https://www.saucedemo.com/');
-
-  await page.getByPlaceholder('Username').fill('standard_user');
-  await page.getByPlaceholder('Password').fill('secret_sauce');
-  await page.getByRole('button', { name: 'Login' }).click();
-
-  // Нэвтэрсний дараа Products харагдах ёстой
-  await expect(page.getByText('Products')).toBeVisible();
-
-  // Menu нээнэ
-  await page.getByRole('button', { name: 'Open Menu' }).click();
-
-  // Logout товч харагдахыг шалгана
-  const logoutButton = page.locator('#logout_sidebar_link');
-  await expect(logoutButton).toBeVisible();
-
-  // Logout хийнэ
-  await logoutButton.click();
-
-  // Login хуудас руу буцсан эсэхийг шалгана
-  await expect(page).toHaveURL('https://www.saucedemo.com/');
+  await login(page);
+  await expect(page).toHaveURL(/inventory/);
+  await expect(page.getByText('Products', { exact: true })).toBeVisible();
+  await logout(page);
 });
 
-
-// 2. Буруу password ашиглахад алдааны мессеж гаргах
 test('амжилтгүй нэвтрэх', async ({ page }) => {
-  await page.goto('https://www.saucedemo.com/');
-
-  await page.getByPlaceholder('Username').fill('standard_user');
-  await page.getByPlaceholder('Password').fill('wrong_password');
-  await page.getByRole('button', { name: 'Login' }).click();
-
-  // Буруу password үед алдааны мессеж харагдах ёстой
-  await expect(
-    page.getByText('Username and password do not match')
-  ).toBeVisible();
-
-  // Login хуудас дээр хэвээр байгаа эсэхийг шалгана
-  await expect(page).toHaveURL('https://www.saucedemo.com/');
+  await login(page, 'standard_user', 'buruu_nuuts_ug');
+  // Алдааны мессеж гарч, inventory хуудас руу орохгүй
+  await expect(page.getByText('Username and password do not match')).toBeVisible();
+  await expect(page).not.toHaveURL(/inventory/);
 });
 
-
-// 3. Нэвтэрсний дараа бараа сагслах
-test('барааг сагслах', async ({ page }) => {
-  await page.goto('https://www.saucedemo.com/');
-
-  await page.getByPlaceholder('Username').fill('standard_user');
-  await page.getByPlaceholder('Password').fill('secret_sauce');
-  await page.getByRole('button', { name: 'Login' }).click();
-
-  // Нэвтэрсэн эсэхийг шалгана
-  await expect(page.getByText('Products')).toBeVisible();
-
-  // Эхний барааг сагсанд нэмнэ
-  await page.getByRole('button', { name: /Add to cart/ }).first().click();
-
-  // Сагсанд 1 бараа нэмэгдсэн эсэхийг шалгана
+test('бараа сагслах', async ({ page }) => {
+  await login(page);
+  // Эхний барааг сагсанд хийнэ
+  await page.getByRole('button', { name: 'Add to cart' }).first().click();
+  // Сагсны тэмдэг дээр 1 гарна
   await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
-
-  // Menu нээнэ
-  await page.getByRole('button', { name: 'Open Menu' }).click();
-
-  // Logout товч харагдахыг шалгана
-  const logoutButton = page.locator('#logout_sidebar_link');
-  await expect(logoutButton).toBeVisible();
-
-  // Logout хийнэ
-  await logoutButton.click();
-
-  // Login хуудас руу буцсан эсэхийг шалгана
-  await expect(page).toHaveURL('https://www.saucedemo.com/');
+  await logout(page);
 });
